@@ -196,17 +196,6 @@ int nbl_build(NeighList * const nl,
                 double const dz = coordinates[3 * n + 2] - coordinates_i_z;
                 double const rsq = dx * dx + dy * dy + dz * dz;
                 
-                // std::cout << "Checking distance between atoms " << i + 1 << " and "
-                //           << n + 1 << ": " << std::sqrt(rsq) << std::endl;
-                // std::cout << "coordinates_i: (" 
-                //           << coordinates_i_x << ", " 
-                //           << coordinates_i_y << ", " 
-                //           << coordinates_i_z << ")" << std::endl;
-                // std::cout << "coordinates_n: ("
-                //             << coordinates[3 * n] << ", " 
-                //             << coordinates[3 * n + 1] << ", " 
-                //             << coordinates[3 * n + 2] << ")" << std::endl;
-
                 if (rsq < TOL)
                 {
                   std::ostringstream stringStream;

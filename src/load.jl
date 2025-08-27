@@ -1,4 +1,3 @@
-# Load C++ functions via CxxWrap
 using CxxWrap
 using Libdl
 
@@ -8,3 +7,5 @@ const libpath = joinpath(@__DIR__, "..", "lib", "kimneighborlist")
 function __init__()
     @initcxx
 end
+
+export nbl_initialize, nbl_clean, nbl_build, nbl_get_neigh, nbl_create_paddings, get_neigh_kim_ptr

@@ -39,6 +39,26 @@ function number_to_symbol(number::Integer)
 end
 
 """
+Opaque handle for keeping neighbor list pointer alive and healthy.
+"""
+mutable struct _NeighborListHandle
+    ptr::Ptr{Cvoid}
+    is_valid::Bool
+
+    function _NeighborListHandle(ptr::Ptr{Cvoid})
+        handle = new(ptr, true)
+
+        finalizer(handle) do h
+            if h.is_valid && h.ptr != C_NULL
+                nbl_clean(h.ptr)
+                h.is_valid = false
+            end
+        end
+    end
+end
+
+
+"""
     NeighborList(species, coords, cell, pbc, cutoffs; padding_need_neigh=true)
 
 Create a neighbor list and return a closure `get_neigh` for querying neighbors.
@@ -52,7 +72,7 @@ Create a neighbor list and return a closure `get_neigh` for querying neighbors.
 - `padding_need_neigh`: Bool, whether to compute neighbors for padding atoms
 
 # Returns
-- `get_neigh`: Closure function that takes an index (1-based) and returns:
+- `get_neigh`: Closure function that takes an index (1-based) and list idx (default = 1) and returns:
   - `neigh_idx`: Vector{Int} of neighbor indices (1-based)
   - `neigh_coords`: Vector{SVector{3,Float64}} of neighbor coordinates
   - `neigh_species`: Vector{String} of neighbor species symbols
@@ -72,7 +92,7 @@ neigh_idx, neigh_coords, neigh_species = get_neigh(1)
 """
 function NeighborList(species::Vector, coords::Vector{SVector{3,Float64}}, 
                      cell::Matrix{Float64}, pbc::Vector{Bool}, cutoffs;
-                     padding_need_neigh::Bool=true)
+                     padding_need_neigh::Bool=false)
     
     # Validate inputs
     length(species) == length(coords) || throw(ArgumentError("species and coords must have same length"))
@@ -142,28 +162,36 @@ function NeighborList(species::Vector, coords::Vector{SVector{3,Float64}},
     if error != 0
         nbl_clean(nl_ptr)
         throw(ErrorException("Failed to build neighbor list (error code: $error)"))
+    else
+        # Wrap pointer in handle to manage memory
+        nl_handle = _NeighborListHandle(nl_ptr)
     end
     
     # Convert all coordinates to SVector format
     # all_coords = Matrix(all_coords') # row mat, TODO: get a proper solution to row-col major shift
     # this is a bit annoying
-    println(all_coords, size(all_coords, 2))
     all_coords_svec = [SVector{3,Float64}(all_coords[:, i]) for i in 1:size(all_coords, 2)]
     
     # Convert all species to symbols
     all_species_symbols = [number_to_symbol(s) for s in all_species]
-    
+    max_idx = padding_need_neigh ? total_atoms : natoms
+    max_list_idx = length(cutoffs_vec)
+
     # Return closure for neighbor queries
-    function get_neigh(atom_idx::Int)
+    function get_neigh(atom_idx::Int; list_idx::Int=1)
         # Convert to 0-based indexing for C++
-        if atom_idx < 1 || atom_idx > natoms
-            throw(BoundsError("atom_idx must be between 1 and $natoms"))
+        if (atom_idx < 1 || atom_idx > max_idx )
+            throw(ArgumentError("input must be between 1 and $natoms"))
         end
+        if (list_idx < 1 || list_idx > max_list_idx )
+            throw(ArgumentError("list_idx must be between 1 and $max_list_idx"))
+        end
+
         
         atom_idx_0based = atom_idx - 1
         
         # Use first cutoff list (index 0)
-        num_neighbors, neighbor_indices_0based = nbl_get_neigh(nl_ptr, cutoffs_vec, 0, atom_idx_0based)
+        num_neighbors, neighbor_indices_0based = nbl_get_neigh(nl_handle.ptr, cutoffs_vec, list_idx - 1, atom_idx_0based)
         
         # Convert back to 1-based indexing
         neigh_idx = [idx + 1 for idx in neighbor_indices_0based]
@@ -173,13 +201,8 @@ function NeighborList(species::Vector, coords::Vector{SVector{3,Float64}},
         return neigh_idx, neigh_coords, neigh_species
     end
     
-    # TODO: Julia GC is bit confusing for now. Claude suggests using finalizers, 
-    # GPT suggests GC.@preserve, will come to it later
-    # WARNING: This might leak memory.
     # TODO: CHECK FOR MEMORY LEAKS [IMPORTANT!]
-    # finalizer(nl_ptr) do ptr
-    #     nbl_clean(ptr)
-    # end
+    # _NeighborListHandle finalizer should handle cleanup
     
     return get_neigh
 end

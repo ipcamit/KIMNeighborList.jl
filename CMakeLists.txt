@@ -7,6 +7,9 @@ add_library(kimneighborlist SHARED
     src/neighbor_list.cpp
     src/neighbor_list_wrap.cpp
 )
+
+set(CMAKE_BUILD_TYPE Release)
+
 target_include_directories(kimneighborlist PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )

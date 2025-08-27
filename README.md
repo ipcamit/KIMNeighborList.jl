@@ -4,6 +4,8 @@ Julia package for efficient neighbor list calculations, converted from the pybin
 
 Seems faster then NeighbourLists.jl that I currently use in `kim_api.jl`. Ported specifically for use in `kim_api.jl` but can be used standalone.
 
+It offers both high performance and rich features like multiple cutoff distances and neighbors on non contributed padding atoms.
+
 ## Installation
 
 1. First, ensure you have Julia 1.10+ installed.
@@ -32,18 +34,24 @@ using KIMNeighborList
 using StaticArrays
 
 # Define system
-coords = [SVector(0.0, 0.0, 0.0), SVector(1.0, 0.0, 0.0), SVector(2.0, 0.0, 0.0)]
-species = ["H", "H", "H"]  # or atomic numbers [1, 1, 1]
-cell = [10.0 0.0 0.0; 0.0 10.0 0.0; 0.0 0.0 10.0]  # 3x3 cell matrix
-pbc = [false, false, false]  # periodic boundary conditions
-cutoff = 1.5
+cutoff = [3.7, 4.0] # single or multiple cutoffs 
+# cutoff = 3.7      # single cutoff
+pbc = [true, true, true]  # periodic boundary conditions
+coords = [SVector(0.0, 0.0, 0.0), SVector(1.35, 1.35, 1.35)]
+cell = [0.0 2.7 2.7; 2.7 0.0 2.7; 2.7 2.7 0.0]
+species = ["H", "H"]  # or atomic numbers [1, 1, 1]
 
 # Create neighbor list (returns a closure)
-get_neigh = NeighborList(species, coords, cell, pbc, cutoff)
+get_neigh = NeighborList(species, coords, cell, pbc, cutoff; padding_need_neigh=true)
+# padding_need_neigh=true: whether padding atoms need neighbor lists, default = false
 
 # Query neighbors (1-based indexing)
 neigh_idx, neigh_coords, neigh_species = get_neigh(2)
 println("Atom 2 has $(length(neigh_idx)) neighbors: $neigh_species")
+
+# neigbors from second cutoff
+neigh_idx2, neigh_coords2, neigh_species2 = get_neigh(2, list_index=2)
+println("Atom 2 has $(length(neigh_idx2)) neighbors within second cutoff: $neigh_species2")
 ```
 
 ### Low-Level Interface (Advanced)
@@ -70,9 +78,8 @@ num_neighbors, neighbor_indices = nbl_get_neigh(nl_ptr, cutoffs, 0, 1)
 nbl_clean(nl_ptr)
 ```
 
-TODO: check 0-based vs 1-based indexing in low-level interface
-TODO: fix the GC issue
-TODO: Benchmark against NeighbourLists.jl
+ - TODO: check 0-based vs 1-based indexing in low-level interface
+ - TODO: Benchmark against NeighbourLists.jl
 
 ## API Reference
 
