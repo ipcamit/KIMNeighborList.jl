@@ -4,7 +4,7 @@ Julia package for efficient neighbor list calculations, converted from the pybin
 
 Seems faster then NeighbourLists.jl that I currently use in `kim_api.jl`. Ported specifically for use in `kim_api.jl` but can be used standalone.
 
-It offers both high performance and rich features like multiple cutoff distances and neighbors on non contributed padding atoms.
+It offers both high performance and rich features like multiple cutoff distances and neighbors on non contributed padding atoms. When compared against KIM-API calls using NeighbourLists.jl, it shows ~50% reduction in the wall time, and 3x reduction in memory usage (I am not 100% sure about the memory usage, as I dont know how accurately BenchmarkTools.jl can measure memory allocations in C/C++ code called from Julia, see test/benchmark.md).
 
 ## Installation
 
@@ -79,7 +79,6 @@ nbl_clean(nl_ptr)
 ```
 
  - TODO: check 0-based vs 1-based indexing in low-level interface
- - TODO: Benchmark against NeighbourLists.jl
 
 ## API Reference
 
