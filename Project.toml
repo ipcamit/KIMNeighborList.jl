@@ -3,7 +3,7 @@ uuid = "c95d6c40-0c10-4161-80ab-e9b71483fbc7"
 version = "1.0.0"
 authors = ["Amit Gupta <gupta839@umn.edu>"]
 description = "Julia wrapper for KIM neighbor list implementation (C++ code by Mingjian Wen <wenxx151@gmail.com>)"
-license = "MIT
+license = "MIT"
 
 [deps]
 CxxWrap = "1f15a43c-97ca-5a2a-ae31-89f07a497df4"
